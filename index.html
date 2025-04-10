@@ -1,0 +1,212 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Who Knows Me?</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to bottom, #1a001f, #330033);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      color: #c77dff;
+    }
+    button {
+      background-color: #c77dff;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 5px;
+      margin: 10px;
+      cursor: pointer;
+    }
+    .input {
+      padding: 10px;
+      margin-top: 10px;
+      width: 70%;
+      border-radius: 5px;
+      border: none;
+    }
+    .question, .result, .link-share, .leaderboard {
+      margin-top: 20px;
+    }
+    .option {
+      margin: 10px 0;
+      background-color: #4b006e;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .option:hover {
+      background-color: #8000ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="home">
+      <h1>Who Knows Me?</h1>
+      <button onclick="goToCreate()">Create Quiz</button>
+      <button onclick="goToJoin()">Take Quiz</button>
+    </div><div id="create" style="display:none">
+  <h2>Create Your Quiz</h2>
+  <input type="text" id="creatorName" class="input" placeholder="Enter your name">
+  <button onclick="startCreatorQuiz()">Start</button>
+</div>
+
+<div id="quiz" style="display:none">
+  <h2 id="quizTitle"></h2>
+  <div id="quizContent"></div>
+  <div class="result" id="quizResult"></div>
+</div>
+
+<div id="share" class="link-share" style="display:none">
+  <h3>Share this link:</h3>
+  <p id="shareLink"></p>
+</div>
+
+<div id="join" style="display:none">
+  <h2 id="joinHeading">Enter Quiz Link</h2>
+  <input type="text" id="quizIdInput" class="input" placeholder="Enter Quiz ID">
+  <input type="text" id="playerName" class="input" placeholder="Enter your name">
+  <button onclick="startPlayerQuiz()">Start Quiz</button>
+</div>
+
+<div class="leaderboard" id="leaderboard" style="display:none">
+  <h2>Leaderboard</h2>
+  <ul id="leaderboardList"></ul>
+</div>
+
+  </div>  <script>
+    const allQuestions = [
+      { q: "Where would I rather travel?", options: ["Paris", "Dubai", "Tokyo", "LA"] },
+      { q: "My favorite season?", options: ["Winter", "Summer", "Spring", "Autumn"] },
+      { q: "Ideal pet?", options: ["Cat", "Dog", "Rabbit", "Parrot"] },
+      { q: "Favorite drink?", options: ["Tea", "Coffee", "Juice", "Water"] },
+      { q: "Dream job?", options: ["Artist", "Doctor", "Engineer", "Entrepreneur"] },
+      { q: "Best hobby?", options: ["Drawing", "Reading", "Gaming", "Cooking"] },
+      { q: "Favorite movie genre?", options: ["Action", "Romance", "Horror", "Comedy"] },
+      { q: "Preferred phone brand?", options: ["Apple", "Samsung", "Infinix", "Tecno"] },
+      { q: "Go-to social app?", options: ["Instagram", "Facebook", "TikTok", "X"] },
+      { q: "Favourite color?", options: ["Purple", "Black", "White", "Red"] }
+    ];
+
+    let currentQuizId = '';
+    let currentQuizAnswers = [];
+    let currentPlayerAnswers = [];
+    let quizIndex = 0;
+    let isCreator = false;
+
+    function goToCreate() {
+      document.getElementById('home').style.display = 'none';
+      document.getElementById('create').style.display = 'block';
+    }
+
+    function goToJoin() {
+      document.getElementById('home').style.display = 'none';
+      document.getElementById('join').style.display = 'block';
+    }
+
+    function startCreatorQuiz() {
+      const name = document.getElementById('creatorName').value.trim();
+      if (!name) return alert('Enter your name');
+      currentQuizId = `quiz-${Date.now()}`;
+      currentQuizAnswers = [];
+      isCreator = true;
+      localStorage.setItem(currentQuizId + '-creator', name);
+      document.getElementById('create').style.display = 'none';
+      document.getElementById('quizTitle').innerText = `Hey ${name}, answer these 10 questions:`;
+      document.getElementById('quiz').style.display = 'block';
+      loadQuestion();
+    }
+
+    function startPlayerQuiz() {
+      const id = document.getElementById('quizIdInput').value.trim();
+      const name = document.getElementById('playerName').value.trim();
+      if (!id || !name) return alert('Fill in both fields');
+      currentQuizId = id;
+      const creator = localStorage.getItem(id + '-creator');
+      const answers = JSON.parse(localStorage.getItem(id + '-answers'));
+      if (!creator || !answers) return alert('Quiz not found');
+      currentQuizAnswers = answers;
+      currentPlayerAnswers = [];
+      isCreator = false;
+      localStorage.setItem(currentQuizId + '-player', name);
+      document.getElementById('join').style.display = 'none';
+      document.getElementById('quizTitle').innerText = `Who knows ${creator} best?`;
+      document.getElementById('quiz').style.display = 'block';
+      quizIndex = 0;
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      const q = allQuestions[quizIndex];
+      const container = document.getElementById('quizContent');
+      container.innerHTML = `<h3>${q.q}</h3>`;
+      q.options.forEach(opt => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.innerText = opt;
+        div.onclick = () => handleAnswer(opt);
+        container.appendChild(div);
+      });
+    }
+
+    function handleAnswer(ans) {
+      if (isCreator) {
+        currentQuizAnswers.push(ans);
+        quizIndex++;
+        if (quizIndex < allQuestions.length) {
+          loadQuestion();
+        } else {
+          localStorage.setItem(currentQuizId + '-answers', JSON.stringify(currentQuizAnswers));
+          document.getElementById('quiz').style.display = 'none';
+          document.getElementById('share').style.display = 'block';
+          document.getElementById('shareLink').innerText = `Your Quiz ID: ${currentQuizId}`;
+        }
+      } else {
+        currentPlayerAnswers.push(ans);
+        quizIndex++;
+        if (quizIndex < allQuestions.length) {
+          loadQuestion();
+        } else {
+          let score = 0;
+          currentPlayerAnswers.forEach((a, i) => {
+            if (a === currentQuizAnswers[i]) score++;
+          });
+          const name = localStorage.getItem(currentQuizId + '-player');
+          const leaderboard = JSON.parse(localStorage.getItem(currentQuizId + '-leaderboard') || '[]');
+          leaderboard.push({ name, score });
+          localStorage.setItem(currentQuizId + '-leaderboard', JSON.stringify(leaderboard));
+          showResults(score);
+        }
+      }
+    }
+
+    function showResults(score) {
+      document.getElementById('quiz').style.display = 'none';
+      document.getElementById('leaderboard').style.display = 'block';
+      const leaderboard = JSON.parse(localStorage.getItem(currentQuizId + '-leaderboard'));
+      const list = document.getElementById('leaderboardList');
+      list.innerHTML = '';
+      leaderboard.sort((a,b) => b.score - a.score).forEach(entry => {
+        const li = document.createElement('li');
+        li.innerText = `${entry.name}: ${entry.score}/10`;
+        list.appendChild(li);
+      });
+
+      const again = document.createElement('button');
+      again.innerText = 'Create Your Own Quiz';
+      again.onclick = () => location.reload();
+      document.getElementById('leaderboard').appendChild(again);
+    }
+  </script></body>
+</html>
